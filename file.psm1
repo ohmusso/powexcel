@@ -1,7 +1,7 @@
 function Open-FileDialog{
     param(
         $startDir = "C:",
-        $title = "繝輔ぃ繧､繝ｫ繧帝∈謚槭＠縺ｦ縺上□縺輔＞"    
+        $title = "ファイルを選択してください"    
     )
     
     Add-Type -AssemblyName System.Windows.Forms
@@ -9,12 +9,12 @@ function Open-FileDialog{
     $dialog = New-Object System.Windows.Forms.OpenFileDialog
 
     if( $null -eq $dialog ){
-        Write-Error "繝輔ぃ繧､繝ｫ繝繧､繧｢繝ｭ繧ｰ縺ｮ襍ｷ蜍輔↓螟ｱ謨励＠縺ｾ縺励◆"
+        Write-Error "ファイルダイアログの起動に失敗しました"
         exit
     }
 
     $dialog.Title = $title
-    $dialog.Filter = "蜈ｨ縺ｦ縺ｮ繝輔ぃ繧､繝ｫ(*.*)|*.*"
+    $dialog.Filter = "全てのファイル(*.*)|*.*"
     $dialog.InitialDirectory = $startDir
 
     if( $dialog.ShowDialog() -eq "OK" ){
@@ -26,7 +26,7 @@ function Open-FileDialog{
 function Open-FolderDialog{
     param(
         $startDir = "C:",
-        $title = "繝輔か繝ｫ繝繧帝∈謚槭＠縺ｦ縺上□縺輔＞"    
+        $title = "フォルダを選択してください"    
     )
     
     Add-Type -AssemblyName System.Windows.Forms
@@ -34,7 +34,7 @@ function Open-FolderDialog{
     $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
 
     if( $null -eq $dialog ){
-        Write-Error "繝輔か繝ｫ繝繝繧､繧｢繝ｭ繧ｰ縺ｮ襍ｷ蜍輔↓螟ｱ謨励＠縺ｾ縺励◆"
+        Write-Error "フォルダダイアログの起動に失敗しました"
         exit
     }
 
