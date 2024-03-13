@@ -12,6 +12,13 @@ $TableInfo = [PSCustomObject]@{
     PropertyNames = @()
 }
 
+$ArrayInfo = [PSCustomObject]@{
+    PSTypeName = 'ArrayInfo.Object'
+    RowCount = 0
+    ColCount = 0
+    Array = $null
+}
+
 function New-TableInfo(){
     $TableInfo.psobject.Copy()
 }
@@ -82,7 +89,6 @@ function Read-Table{
         exit
     }
 
-    $range
     if( $stringRange -eq "" ){
         $range = $sheet.Range($startCell).Currentregion
     }
@@ -99,12 +105,16 @@ function Read-Table{
             $range.Cells($tableInfo.EndRow, $tableInfo.EndColumn)
     ).Value2
 
+    # テンプレートオブジェクトを作成。ヘッダ行をメンバとして追加
+    $tableObj = New-Object -TypeName PSCustomObject
+    foreach($propertyName in $tableInfo.PropertyNames){
+        $tableObj | Add-Member -MemberType NoteProperty -Name $propertyName -Value "" # 全てのメンバは文字列で、空文字で初期化する。
+    }
+
+    # テンプレートからオブジェクトを作成して読み出したデータを設定する
     for( $row = 0; $row -lt ($tableInfo.EndRow - $tableInfo.StartRow); $row++){
-        # オブジェクトを作成し、ヘッダ行をメンバとして追加
-        $obj = New-Object -TypeName PSCustomObject
-        foreach($propertyName in $tableInfo.PropertyNames){
-            $obj | Add-Member -MemberType NoteProperty -Name $propertyName -Value "" # 全てのメンバは文字列で、空文字で初期化する。
-        }
+
+        $obj = $tableObj.psobject.Copy()
 
         # オブジェクトに読みだした行データを設定
         for( $column = 0; $column -lt ($tableInfo.EndColumn - $tableInfo.StartColumn); $column++){
@@ -204,4 +214,72 @@ function Get-Excel{
 
     # return
     $excel
+}
+
+function Convert-ObjsToArray{
+    param(
+        $objs = $null,
+        $isHeader = $true
+    )
+
+    $arrayInfo= $ArrayInfo.psobject.copy()
+
+    if( $isHeader -eq $true ){
+        $arrayInfo.RowCount = $objs.Count + 1
+    }
+    else{
+        $arrayInfo.RowCount = $objs.Count
+    }
+    $arrayInfo.ColCount = ($objs | Get-Member -MemberType NoteProperty).Count
+
+    $properties = $objs[0] | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
+
+    $array = New-Object 'Object[,]' $arrayInfo.RowCount, $arrayInfo.ColCount
+    
+    $rowOffset = 0
+    if( $isHeader -eq $true ){
+        for( $col = 0; $col -lt $arrayInfo.ColCount; $col++ ){
+            $array[0, $col] = [String]$properties[$col]
+        }
+
+        $rowOffset = 1
+    }
+
+    for( $row = 0; $row -lt $objs.Count; $row++ ){
+        for( $col = 0; $col -lt $arrayInfo.ColCount; $col++ ){
+            $array[($row + $rowOffset), $col] = [String]$objs[$row].($properties[$col])
+        }
+    }
+    $arrayInfo.Array = $array
+
+    $arrayInfo
+}
+
+function Write-Table {
+    param (
+        $startCell = "A1",
+        $sheet = $null,
+        $objs = $null,
+        $isHeader = $true
+    )
+
+    if( $null -eq $sheet ){
+        Write-Error "sheet is null"
+        exit
+    }
+
+    if( $null -eq $objs ){
+        Write-Error "Objs is null"
+    }
+
+    [PSTypeName('ArrayInfo.Object')]$arrayInfo = Convert-ObjsToArray -objs $objs -isHeader $isHeader
+
+    # 書き込み開始位置
+    $startRow = $sheet.Range($startCell).Row
+    $startCol = $sheet.Range($startCell).Column
+    # 書き込み終了位置
+    $endRow =  $startRow + $arrayInfo.RowCount - 1 # 0始まり
+    $endCol =  $startCol + $arrayInfo.ColCount - 1 # 0始まり
+    # 書き込み
+    $sheet.Range($sheet.Cells($startRow, $startCol), $sheet.Cells($endRow, $endCol)).Value2 = $arrayInfo.Array
 }
