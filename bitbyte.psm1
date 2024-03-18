@@ -49,7 +49,7 @@ function Get-BitsFromBytes{
     }
     else{
         # バイト跨ぎなし
-        $shift = 7 - $sigEndBit
+        $shift = 8 - ($sigEndBit - ($sigEndByte * 8) + 1)
         $mask = (1 -shl $sigLength) - 1
         $sigValue = ($bytes[$sigStartByte] -shr $shift) -band $mask
     }
@@ -108,7 +108,7 @@ function Get-BitsFromBytesLittle{
     }
     else{
         # バイト跨ぎなし
-        $shift = $sigStartBit
+        $shift = $sigStartBit - ($sigStartByte * 8)
         $mask = (1 -shl $sigLength) - 1
         $sigValue = ($bytes[$sigStartByte] -shr $shift) -band $mask
     }
