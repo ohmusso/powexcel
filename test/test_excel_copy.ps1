@@ -12,5 +12,5 @@ $destSheet = $destBook.Sheets("Sheet1")
 # コピー
 Copy-Table -fromSheet $fromSheet -fromRangeStr "B2:G2" -destSheet $destSheet -destCellStr "A2"
 
-# コピーは閉じる
+# コピー元は保存せずに閉じる
 $fromBook.Close($false)
