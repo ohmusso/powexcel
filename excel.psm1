@@ -128,6 +128,45 @@ function Read-Table{
     $table
 }
 
+function Copy-Table{
+    Param(
+        $fromSheet = $null,
+        $fromRangeStr = "A1:B1",
+        $destSheet = $null,
+        $destCellStr = "D2"
+    )
+
+    if( ($null -eq $fromSheet) -or ($null -eq $destSheet) ){
+        Write-Error "no sheet object"
+        exit
+    }
+
+    # コピー元のテーブル範囲を調べる
+    $cellStrs = $fromRangeStr -split ":"
+
+    $fromStartRow = $fromSheet.Range($cellStrs[0]).Row
+    $fromStartCol = $fromSheet.Range($cellStrs[0]).Column
+
+    $fromEndCol = $fromSheet.Range($cellStrs[1]).Column
+    $fromEndRow = $fromStartRow
+    while($fromSheet.Cells($fromEndRow, $fromEndCol).Value() -ne $null){
+        $fromEndRow++
+    }
+
+    # コピー先のセル情報
+    $destStartRow = $destSheet.Range($destCellStr).Row
+    $destStartCol = $destSheet.Range($destCellStr).Column
+    $destEndRow = $destStartRow + ($fromEndRow - $fromStartRow)
+    $destEndCol = $destStartCol + ($fromEndCol - $fromStartCol)
+
+    # コピー元の数式を値で上書き
+    $fromSheet.Activate()
+    $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value() = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value()
+
+    # 値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
+    $destSheet.Activate()
+    $destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow, $destEndCol)).Value(11) = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value(11)
+}
 
 Add-Type -TypeDefinition @'
 using System;
@@ -178,12 +217,12 @@ function Get-Excel{
     param(
         $startDir = "C:",
         $title = "excelファイルを選択してください",
-        $isNew = $false
+        $isOpen = $true
     )
 
     $excel = $null
 
-    if( $isNew -eq $false ){
+    if( $isOpen -eq $true ){
         $path = Open-FileDialog -startDir $startDir -title $title
 
         if( $null -eq $path ){
@@ -201,14 +240,14 @@ function Get-Excel{
         }
     }
     else{
-        if( $PSVersionTable.PSVersion.Revision -le 4046 ){
+        if(($PSVersionTable.PSVersion.Major -le 5) -and ($PSVersionTable.PSVersion.Minor -le 1) ){
             # powershell 5.1 or less 
-            $excel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Applicaiton")
+            $excel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
         }
         else{
             # greater than powershell 5.1
             # definie Marshal2 in this script 
-            $excel = [Marshal2]::GetActiveObject("Excel.Applicaiton")
+            $excel = [Marshal2]::GetActiveObject("Excel.Application")
         }
     }
 
@@ -282,4 +321,24 @@ function Write-Table {
     $endCol =  $startCol + $arrayInfo.ColCount - 1 # 0始まり
     # 書き込み
     $sheet.Range($sheet.Cells($startRow, $startCol), $sheet.Cells($endRow, $endCol)).Value2 = $arrayInfo.Array
+}
+
+function New-Excel {
+    param(
+        $filePath = "book1.xlsx",
+        $startCell,
+        $objects
+    )
+
+
+    $excel = New-Object -ComObject Excel.Application
+    $excel.DisplayAlerts = $FALSE
+
+    $book = $excel.Workbooks.Add();
+
+    $book.SaveAs($filePath);
+
+    $excel.Quit()
+    $book = $null
+    $excel = $null
 }
