@@ -7,16 +7,11 @@ Augue lacus viverra vitae congue eu consequat ac felis donec.
 Volutpat sed cras ornare arcu 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
 Dui id ornare arcu odio ut sem nulla pharetra diam. 
-func(abc_edf);
 Risus viverra adipiscing at in. 
 Augue lacus viverra vitae congue eu consequat ac felis donec. 
 Volutpat sed cras ornare arcu 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
 Dui id ornare arcu odio ut sem nulla pharetra diam. 
-abc_edf = xxx;
 Risus viverra adipiscing at in. 
-#define abc_edf vwu_xyz
 Augue lacus viverra vitae congue eu consequat ac felis donec. 
-hugahuga
 Volutpat sed cras ornare arcu 
-abc_edf = xxx;
