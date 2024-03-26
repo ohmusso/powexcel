@@ -8,7 +8,7 @@ function Test-MatchValiables{
     )
 
     foreach($v in $valiables){
-        if( $str -match "${v}[^a-zA-Z1-9_]" ){
+        if( $str -match "${v}[^a-zA-Z1-9_]|${v}$" ){
             return $true
         }
     }
