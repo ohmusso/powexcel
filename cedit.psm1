@@ -34,11 +34,12 @@ function Remove-Line {
         do{
             $ret = Test-MatchValiables -valiables $valiables -str $text[$i]
             if( $ret -eq $true ){
-                Write-Host ("Remove, ${file}: ${i}L: " + $text[$i])
+                Write-Host ("Remove, ${file}: " + $text[$i])
                 $text.RemoveAt($i)
             }
-
-            $i++
+			else{
+				$i++
+			}
         } while($null -ne $text[$i])
 
         #$text =[String]$text 
