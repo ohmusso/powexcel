@@ -25,6 +25,7 @@ function Get-BitsFromBytes{
         # 後ろから処理
         $curBit = $sigEndBit
         $curByte = $sigEndByte
+        $curSigValueBit = 0
 
         # 開始Byteまで処理
         do{
@@ -33,9 +34,10 @@ function Get-BitsFromBytes{
             $shift = 8 - $numBit
             $mask = (1 -shl $numBit) - 1
             $extractedValue = ($bytes[$curByte] -shr $shift) -band $mask
-            $sigValue = $sigValue -bor ($extractedValue  -shl ($curBit - $sigStartBit + 1))
+            $sigValue = $sigValue -bor ($extractedValue -shl $curSigValueBit)
 
             $curByte--
+			$curSigValueBit += $numBit
 
         } while($curByte -gt $sigStartByte)
 
@@ -45,7 +47,7 @@ function Get-BitsFromBytes{
         $shift = 0
         $mask = (1 -shl $numBit) - 1
         $extractedValue = ($bytes[$curByte] -shr $shift) -band $mask
-        $sigValue = $sigValue -bor ($extractedValue  -shl ($curBit - $sigStartBit + 1))
+        $sigValue = $sigValue -bor ($extractedValue -shl $curSigValueBit)
     }
     else{
         # バイト跨ぎなし
