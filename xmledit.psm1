@@ -26,8 +26,21 @@ function Remove-XmlNode{
         [String]$namespace
     )
 	$ns = @{ns = $namespace}
-	$xPath = "//ns:$nodeName[ns:$key='$value']"
+
+	$xPath
+	if("" -eq $key){
+		$xPath = "//ns:$nodeName[text()='$value']"
+	}
+	else{
+		$xPath = "//ns:$nodeName[ns:$key='$value']"
+	}
+
 	$selectNodeInfo = Select-Xml -Xml $xml -XPath $xPath -Namespace $ns
+
+    if($null -eq $selectNodeInfo){
+        return
+    }
+
     $node = $selectNodeInfo.Node
 	$node.ParentNode.RemoveChild($node)
 }
