@@ -1,4 +1,4 @@
-Import-Module "${PSScriptRoot}\../excel.psm1" -Force
+Import-Module "${PSScriptRoot}\..\excel.psm1" -Force
 
 # 予めコピー先のエクセル test_copy_to.xlsx を開いておく
 $excel = Get-Excel -isOpen $false

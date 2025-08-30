@@ -3,169 +3,170 @@ Write-Host $PSScriptRoot
 Import-Module "${PSScriptRoot}\file.psm1"
 
 $TableInfo = [PSCustomObject]@{
-    PSTypeName = 'TableInfo.Object'
-    StartRow = 0
-    EndRow = 0
-    StartColumn = 0
-    EndColumn = 0
-    PropertyRow = 0
-    PropertyNames = @()
+	PSTypeName    = 'TableInfo.Object'
+	StartRow      = 0
+	EndRow        = 0
+	StartColumn   = 0
+	EndColumn     = 0
+	PropertyRow   = 0
+	PropertyNames = @()
 }
 
 $ArrayInfo = [PSCustomObject]@{
-    PSTypeName = 'ArrayInfo.Object'
-    RowCount = 0
-    ColCount = 0
-    Array = $null
+	PSTypeName = 'ArrayInfo.Object'
+	RowCount   = 0
+	ColCount   = 0
+	Array      = $null
 }
 
-function New-TableInfo(){
-    $TableInfo.psobject.Copy()
+function New-TableInfo() {
+	$TableInfo.psobject.Copy()
 }
 
-function Read-TableInfo{
-    Param(
-        $rangeObj,
-        $rowOffset = 2,
-        $colOffset = 2,
-        $headerRow = 1,
-        $headerDelim = ":"
-    )
+function Read-TableInfo {
+	Param(
+		$rangeObj,
+		$rowOffset = 2,
+		$colOffset = 2,
+		$headerRow = 1,
+		$headerDelim = ":"
+	)
     
-    $tableInfo = $TableInfo.psobject.copy()
+	$tableInfo = $TableInfo.psobject.copy()
 
-    $tableInfo.StartRow = $rowOffset + $headerRow + 1  # データ行の開始 +1 はRange.cells()が1始まりの為
-    $tableInfo.EndRow = $rangeObj.Rows.Count + 1       # データ行の終了 +1 はRange.cells()が1始まりの為
-    $tableInfo.StartColumn = $colOffset + 1            # +1 はRange.cells()が1始まりの為
-    $tableInfo.EndColumn = $rangeObj.Columns.Count + 1 # +1 はRange.cells()が1始まりの為
+	$tableInfo.StartRow = $rowOffset + $headerRow + 1  # データ行の開始 +1 はRange.cells()が1始まりの為
+	$tableInfo.EndRow = $rangeObj.Rows.Count + 1       # データ行の終了 +1 はRange.cells()が1始まりの為
+	$tableInfo.StartColumn = $colOffset + 1            # +1 はRange.cells()が1始まりの為
+	$tableInfo.EndColumn = $rangeObj.Columns.Count + 1 # +1 はRange.cells()が1始まりの為
 
-    # ヘッダの行数
-    $startHeaderRow = $rowOffset + 1
-    $endHeaderRow = $startHeaderRow + $headerRow
+	# ヘッダの行数
+	$startHeaderRow = $rowOffset + 1
+	$endHeaderRow = $startHeaderRow + $headerRow
 
-    $StackPropertyName = New-Object String[] $headerRow # ヘッダ行が複数行の場合、各行の文字列を連結して一つの列名とする
-    for( $column = $tableInfo.StartColumn; $column -lt $tableInfo.EndColumn; $column++ ){
-        $propertyName = ""
-        for( $row = $startHeaderRow; $row -lt $endHeaderRow; $row++ ){
-            # ヘッダ行をループ
-            $name = $rangeObj.cells($row, $column).text
-            if( ($rangeObj.cells($row, $column).MergeCells -eq $true) -and ($name -ne "") ){ # 結合セルかつ空でないの場合
-                # 結合セルの左端。ヘッダの親要素とする。
-                $StackPropertyName[$row - $startHeaderRow] = $name + $headerDelim 
-            }
-            else{
-                # ヘッダの子要素。
-                $StackPropertyName[$row - $startHeaderRow] = ""
-                $propertyName = $name
-            }
-        }
+	$StackPropertyName = New-Object String[] $headerRow # ヘッダ行が複数行の場合、各行の文字列を連結して一つの列名とする
+	for ( $column = $tableInfo.StartColumn; $column -lt $tableInfo.EndColumn; $column++ ) {
+		$propertyName = ""
+		for ( $row = $startHeaderRow; $row -lt $endHeaderRow; $row++ ) {
+			# ヘッダ行をループ
+			$name = $rangeObj.cells($row, $column).text
+			if ( ($rangeObj.cells($row, $column).MergeCells -eq $true) -and ($name -ne "") ) {
+				# 結合セルかつ空でないの場合
+				# 結合セルの左端。ヘッダの親要素とする。
+				$StackPropertyName[$row - $startHeaderRow] = $name + $headerDelim 
+			}
+			else {
+				# ヘッダの子要素。
+				$StackPropertyName[$row - $startHeaderRow] = ""
+				$propertyName = $name
+			}
+		}
 
-        if( $propertyName -eq "" ){
-            # 空白列の場合
-            $propertyName = "reserved_" + $column 
-        }
-        else{
-            # スタックの文字を連結して一つの列名とする
-            $propertyName = [string]::Join("", $StackPropertyName) + $propertyName 
-        }
-        $tableInfo.PropertyNames += $propertyName 
-    }
+		if ( $propertyName -eq "" ) {
+			# 空白列の場合
+			$propertyName = "reserved_" + $column 
+		}
+		else {
+			# スタックの文字を連結して一つの列名とする
+			$propertyName = [string]::Join("", $StackPropertyName) + $propertyName 
+		}
+		$tableInfo.PropertyNames += $propertyName 
+	}
 
-    $tableInfo
+	$tableInfo
 }
 
-function Read-Table{
-    Param(
-        $startCell = "A1",  # 表の見出しを含めた一番左上
-        $rowOffset = 1,     # Currentregionでずれた分を補正
-        $colOffset = 2,     # Currentregionでずれた分を補正
-        $headerRow = 1,     # 表の見出し行数
-        $sheet = $null,     # excel object
-        $stringRange = ""
-    )
+function Read-Table {
+	Param(
+		$startCell = "A1",  # 表の見出しを含めた一番左上
+		$rowOffset = 1,     # Currentregionでずれた分を補正
+		$colOffset = 2,     # Currentregionでずれた分を補正
+		$headerRow = 1,     # 表の見出し行数
+		$sheet = $null,     # excel object
+		$stringRange = ""
+	)
 
-    if( $null -eq $sheet ){
-        Write-Error "no sheet"
-        exit
-    }
+	if ( $null -eq $sheet ) {
+		Write-Error "no sheet"
+		exit
+	}
 
-    if( $stringRange -eq "" ){
-        $range = $sheet.Range($startCell).Currentregion
-    }
-    else{
-        $range = $sheet.Range($stringRange)
-    }
+	if ( $stringRange -eq "" ) {
+		$range = $sheet.Range($startCell).Currentregion
+	}
+	else {
+		$range = $sheet.Range($stringRange)
+	}
 
-    [PSTypeName('TableInfo.Object')]$tableInfo = Read-TableInfo -rangeObj $range -rowOffset $rowOffset -colOffset $colOffset -headerRow $headerRow
+	[PSTypeName('TableInfo.Object')]$tableInfo = Read-TableInfo -rangeObj $range -rowOffset $rowOffset -colOffset $colOffset -headerRow $headerRow
 
-    # 表をオブジェクト化
-    $table = @()
-    $rangeValue2 = $sheet.Range(
-            $range.Cells($tableInfo.StartRow, $tableInfo.StartColumn),
-            $range.Cells($tableInfo.EndRow, $tableInfo.EndColumn)
-    ).Value2
+	# 表をオブジェクト化
+	$table = @()
+	$rangeValue2 = $sheet.Range(
+		$range.Cells($tableInfo.StartRow, $tableInfo.StartColumn),
+		$range.Cells($tableInfo.EndRow, $tableInfo.EndColumn)
+	).Value2
 
-    # テンプレートオブジェクトを作成。ヘッダ行をメンバとして追加
-    $tableObj = New-Object -TypeName PSCustomObject
-    foreach($propertyName in $tableInfo.PropertyNames){
-        $tableObj | Add-Member -MemberType NoteProperty -Name $propertyName -Value "" # 全てのメンバは文字列で、空文字で初期化する。
-    }
+	# テンプレートオブジェクトを作成。ヘッダ行をメンバとして追加
+	$tableObj = New-Object -TypeName PSCustomObject
+	foreach ($propertyName in $tableInfo.PropertyNames) {
+		$tableObj | Add-Member -MemberType NoteProperty -Name $propertyName -Value "" # 全てのメンバは文字列で、空文字で初期化する。
+	}
 
-    # テンプレートからオブジェクトを作成して読み出したデータを設定する
-    for( $row = 0; $row -lt ($tableInfo.EndRow - $tableInfo.StartRow); $row++){
+	# テンプレートからオブジェクトを作成して読み出したデータを設定する
+	for ( $row = 0; $row -lt ($tableInfo.EndRow - $tableInfo.StartRow); $row++) {
 
-        $obj = $tableObj.psobject.Copy()
+		$obj = $tableObj.psobject.Copy()
 
-        # オブジェクトに読みだした行データを設定
-        for( $column = 0; $column -lt ($tableInfo.EndColumn - $tableInfo.StartColumn); $column++){
-            $obj.($tableInfo.PropertyNames[$column]) = $rangeValue2[($row + 1), ($column + 1)] # +1はValue2が1始まりのため
-        }
+		# オブジェクトに読みだした行データを設定
+		for ( $column = 0; $column -lt ($tableInfo.EndColumn - $tableInfo.StartColumn); $column++) {
+			$obj.($tableInfo.PropertyNames[$column]) = $rangeValue2[($row + 1), ($column + 1)] # +1はValue2が1始まりのため
+		}
 
-        $table += $obj
-    }
+		$table += $obj
+	}
 
-    # output
-    $table
+	# output
+	$table
 }
 
-function Copy-Table{
-    Param(
-        $fromSheet = $null,
-        $fromRangeStr = "A1:B1",
-        $destSheet = $null,
-        $destCellStr = "D2"
-    )
+function Copy-Table {
+	Param(
+		$fromSheet = $null,
+		$fromRangeStr = "A1:B1",
+		$destSheet = $null,
+		$destCellStr = "D2"
+	)
 
-    if( ($null -eq $fromSheet) -or ($null -eq $destSheet) ){
-        Write-Error "no sheet object"
-        exit
-    }
+	if ( ($null -eq $fromSheet) -or ($null -eq $destSheet) ) {
+		Write-Error "no sheet object"
+		exit
+	}
 
-    # コピー元のテーブル範囲を調べる
-    $cellStrs = $fromRangeStr -split ":"
+	# コピー元のテーブル範囲を調べる
+	$cellStrs = $fromRangeStr -split ":"
 
-    $fromStartRow = $fromSheet.Range($cellStrs[0]).Row
-    $fromStartCol = $fromSheet.Range($cellStrs[0]).Column
+	$fromStartRow = $fromSheet.Range($cellStrs[0]).Row
+	$fromStartCol = $fromSheet.Range($cellStrs[0]).Column
 
-    $fromEndCol = $fromSheet.Range($cellStrs[1]).Column
-    $fromEndRow = $fromStartRow
-    while($fromSheet.Cells($fromEndRow, $fromEndCol).Value() -ne $null){
-        $fromEndRow++
-    }
+	$fromEndCol = $fromSheet.Range($cellStrs[1]).Column
+	$fromEndRow = $fromStartRow
+	while ($null -ne $fromSheet.Cells($fromEndRow, $fromEndCol).Value()) {
+		$fromEndRow++
+	}
 
-    # コピー先のセル情報
-    $destStartRow = $destSheet.Range($destCellStr).Row
-    $destStartCol = $destSheet.Range($destCellStr).Column
-    $destEndRow = $destStartRow + ($fromEndRow - $fromStartRow)
-    $destEndCol = $destStartCol + ($fromEndCol - $fromStartCol)
+	# コピー先のセル情報
+	$destStartRow = $destSheet.Range($destCellStr).Row
+	$destStartCol = $destSheet.Range($destCellStr).Column
+	$destEndRow = $destStartRow + ($fromEndRow - $fromStartRow)
+	$destEndCol = $destStartCol + ($fromEndCol - $fromStartCol)
 
-    # コピー元の数式を値で上書き
-    $fromSheet.Activate()
-    $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value() = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value()
+	# コピー元の数式を値で上書き
+	$fromSheet.Activate()
+	$fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value() = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value()
 
-    # 値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
-    $destSheet.Activate()
-    $destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow, $destEndCol)).Value(11) = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value(11)
+	# 値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
+	$destSheet.Activate()
+	$destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow, $destEndCol)).Value(11) = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value(11)
 }
 
 Add-Type -TypeDefinition @'
@@ -213,132 +214,133 @@ public static class Marshal2
 }
 '@
 
-function Get-Excel{
-    param(
-        $startDir = "C:",
-        $title = "excelファイルを選択してください",
-        $isOpen = $true
-    )
+function Get-Excel {
+	param(
+		$startDir = "C:",
+		$title = "excelファイルを選択してください",
+		$isOpen = $true
+	)
 
-    $excel = $null
+	$excel = $null
 
-    if( $isOpen -eq $true ){
-        $path = Open-FileDialog -startDir $startDir -title $title
+	if ( $isOpen -eq $true ) {
+		$path = Open-FileDialog -startDir $startDir -title $title
 
-        if( $null -eq $path ){
-            Write-Error "ファイルが選択されませんでした"
-            exit
-        }
+		if ( $null -eq $path ) {
+			Write-Error "ファイルが選択されませんでした"
+			exit
+		}
 
-        $excel = New-Object -ComObject Excel.Application
-        $excel.Visible = $false
-        try{
-            [void]$excel.Workbooks.Open($path)
-        }catch{
-            $excel.Quit()
-            $excel = $null
-        }
-    }
-    else{
-        if(($PSVersionTable.PSVersion.Major -le 5) -and ($PSVersionTable.PSVersion.Minor -le 1) ){
-            # powershell 5.1 or less 
-            $excel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
-        }
-        else{
-            # greater than powershell 5.1
-            # definie Marshal2 in this script 
-            $excel = [Marshal2]::GetActiveObject("Excel.Application")
-        }
-    }
+		$excel = New-Object -ComObject Excel.Application
+		$excel.Visible = $false
+		try {
+			[void]$excel.Workbooks.Open($path)
+		}
+		catch {
+			$excel.Quit()
+			$excel = $null
+		}
+	}
+	else {
+		if (($PSVersionTable.PSVersion.Major -le 5) -and ($PSVersionTable.PSVersion.Minor -le 1) ) {
+			# powershell 5.1 or less 
+			$excel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+		}
+		else {
+			# greater than powershell 5.1
+			# definie Marshal2 in this script 
+			$excel = [Marshal2]::GetActiveObject("Excel.Application")
+		}
+	}
 
-    # return
-    $excel
+	# return
+	$excel
 }
 
-function Convert-ObjsToArray{
-    param(
-        $objs = $null,
-        $isHeader = $true
-    )
+function Convert-ObjsToArray {
+	param(
+		$objs = $null,
+		$isHeader = $true
+	)
 
-    $arrayInfo= $ArrayInfo.psobject.copy()
+	$arrayInfo = $ArrayInfo.psobject.copy()
 
-    if( $isHeader -eq $true ){
-        $arrayInfo.RowCount = $objs.Count + 1
-    }
-    else{
-        $arrayInfo.RowCount = $objs.Count
-    }
-    $arrayInfo.ColCount = ($objs | Get-Member -MemberType NoteProperty).Count
+	if ( $isHeader -eq $true ) {
+		$arrayInfo.RowCount = $objs.Count + 1
+	}
+	else {
+		$arrayInfo.RowCount = $objs.Count
+	}
+	$arrayInfo.ColCount = ($objs | Get-Member -MemberType NoteProperty).Count
 
-    $properties = $objs[0] | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
+	$properties = $objs[0] | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
 
-    $array = New-Object 'Object[,]' $arrayInfo.RowCount, $arrayInfo.ColCount
+	$array = New-Object 'Object[,]' $arrayInfo.RowCount, $arrayInfo.ColCount
     
-    $rowOffset = 0
-    if( $isHeader -eq $true ){
-        for( $col = 0; $col -lt $arrayInfo.ColCount; $col++ ){
-            $array[0, $col] = [String]$properties[$col]
-        }
+	$rowOffset = 0
+	if ( $isHeader -eq $true ) {
+		for ( $col = 0; $col -lt $arrayInfo.ColCount; $col++ ) {
+			$array[0, $col] = [String]$properties[$col]
+		}
 
-        $rowOffset = 1
-    }
+		$rowOffset = 1
+	}
 
-    for( $row = 0; $row -lt $objs.Count; $row++ ){
-        for( $col = 0; $col -lt $arrayInfo.ColCount; $col++ ){
-            $array[($row + $rowOffset), $col] = [String]$objs[$row].($properties[$col])
-        }
-    }
-    $arrayInfo.Array = $array
+	for ( $row = 0; $row -lt $objs.Count; $row++ ) {
+		for ( $col = 0; $col -lt $arrayInfo.ColCount; $col++ ) {
+			$array[($row + $rowOffset), $col] = [String]$objs[$row].($properties[$col])
+		}
+	}
+	$arrayInfo.Array = $array
 
-    $arrayInfo
+	$arrayInfo
 }
 
 function Write-Table {
-    param (
-        $startCell = "A1",
-        $sheet = $null,
-        $objs = $null,
-        $isHeader = $true
-    )
+	param (
+		$startCell = "A1",
+		$sheet = $null,
+		$objs = $null,
+		$isHeader = $true
+	)
 
-    if( $null -eq $sheet ){
-        Write-Error "sheet is null"
-        exit
-    }
+	if ( $null -eq $sheet ) {
+		Write-Error "sheet is null"
+		exit
+	}
 
-    if( $null -eq $objs ){
-        Write-Error "Objs is null"
-    }
+	if ( $null -eq $objs ) {
+		Write-Error "Objs is null"
+	}
 
-    [PSTypeName('ArrayInfo.Object')]$arrayInfo = Convert-ObjsToArray -objs $objs -isHeader $isHeader
+	[PSTypeName('ArrayInfo.Object')]$arrayInfo = Convert-ObjsToArray -objs $objs -isHeader $isHeader
 
-    # 書き込み開始位置
-    $startRow = $sheet.Range($startCell).Row
-    $startCol = $sheet.Range($startCell).Column
-    # 書き込み終了位置
-    $endRow =  $startRow + $arrayInfo.RowCount - 1 # 0始まり
-    $endCol =  $startCol + $arrayInfo.ColCount - 1 # 0始まり
-    # 書き込み
-    $sheet.Range($sheet.Cells($startRow, $startCol), $sheet.Cells($endRow, $endCol)).Value2 = $arrayInfo.Array
+	# 書き込み開始位置
+	$startRow = $sheet.Range($startCell).Row
+	$startCol = $sheet.Range($startCell).Column
+	# 書き込み終了位置
+	$endRow = $startRow + $arrayInfo.RowCount - 1 # 0始まり
+	$endCol = $startCol + $arrayInfo.ColCount - 1 # 0始まり
+	# 書き込み
+	$sheet.Range($sheet.Cells($startRow, $startCol), $sheet.Cells($endRow, $endCol)).Value2 = $arrayInfo.Array
 }
 
 function New-Excel {
-    param(
-        $filePath = "book1.xlsx",
-        $startCell,
-        $objects
-    )
+	param(
+		$filePath = "book1.xlsx",
+		$startCell,
+		$objects
+	)
 
 
-    $excel = New-Object -ComObject Excel.Application
-    $excel.DisplayAlerts = $FALSE
+	$excel = New-Object -ComObject Excel.Application
+	$excel.DisplayAlerts = $FALSE
 
-    $book = $excel.Workbooks.Add();
+	$book = $excel.Workbooks.Add();
 
-    $book.SaveAs($filePath);
+	$book.SaveAs($filePath);
 
-    $excel.Quit()
-    $book = $null
-    $excel = $null
+	$excel.Quit()
+	$book = $null
+	$excel = $null
 }
