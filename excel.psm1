@@ -134,7 +134,9 @@ function Copy-Table {
 		$fromSheet = $null,
 		$fromRangeStr = "A1:B1",
 		$destSheet = $null,
-		$destCellStr = "D2"
+		$destCellStr = "D2",
+		$filterCol = $null,
+		$filterVal = $null
 	)
 
 	if ( ($null -eq $fromSheet) -or ($null -eq $destSheet) ) {
@@ -162,11 +164,32 @@ function Copy-Table {
 
 	# コピー元の数式を値で上書き
 	$fromSheet.Activate()
-	$fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value() = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value()
+    $v = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value()
+	$fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value() = $v
 
-	# 値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
-	$destSheet.Activate()
-	$destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow, $destEndCol)).Value(11) = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow, $fromEndCol)).Value(11)
+    # フィルタ処理
+	$fromRagne = $fromSheet.Range($fromSheet.Cells($fromStartRow, $fromStartCol), $fromSheet.Cells($fromEndRow-1, $fromEndCol))
+    $fromRagne.EntireRow.Hidden = $false
+    $fromRagne.EntireColumn.Hidden = $false
+	if ( $null -ne $filterCol ) {
+		$fromRagne.AutoFilter($filterCol, $filterVal)
+		$filterdRange = $fromRagne.SpecialCells(12)
+        $areaNum = $filterdRange.Areas.Count
+        $destSheet.Activate()
+        $destRowOffset = $destStartRow
+        for( $i = 0; $i -lt $areaNum; $i++ ){
+    	    # Area毎に値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
+            $valueXml = $filterdRange.Areas.Item($i + 1).Value(11) # Item begin from 1
+            $rowCount = $filterdRange.Areas.Item($i + 1).Rows.Count
+	        $destSheet.Range($destSheet.Cells($destRowOffset, $destStartCol), $destSheet.Cells($destRowOffset + $rowCount - 1, $destEndCol)).Value(11) = $valueXml
+            $destRowOffset += $rowCount
+        }
+	}else{
+	    # 値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
+	    $destSheet.Activate()
+	    $destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow, $destEndCol)).Value(11) = $value2
+    }
+
 }
 
 Add-Type -TypeDefinition @'
