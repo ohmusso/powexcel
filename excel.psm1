@@ -187,7 +187,8 @@ function Copy-Table {
 	}else{
 	    # 値と書式をコピー Value()の引数 11: xlRangeValueXMLSpreadsheet
 	    $destSheet.Activate()
-	    $destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow, $destEndCol)).Value(11) = $value2
+        $valueXml = $fromRagne.Value(11)
+	    $destSheet.Range($destSheet.Cells($destStartRow, $destStartCol), $destSheet.Cells($destEndRow - 1, $destEndCol)).Value(11) = $valueXml
     }
 
 }
